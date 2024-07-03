@@ -4,13 +4,18 @@ import com.example.sksb.domain.member.entity.Member;
 import com.example.sksb.domain.member.repository.MemberRepository;
 import com.example.sksb.global.exceptions.GlobalException;
 import com.example.sksb.global.rsData.RsData;
+import com.example.sksb.global.security.SecurityUser;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -19,7 +24,7 @@ import java.util.Optional;
 public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
-    private final com.example.sksb.domain.member.service.AuthTokenService authTokenService;
+    private final AuthTokenService authTokenService;
 
     public Optional<Member> findByUsername(String username) {
         return memberRepository.findByUsername(username);
@@ -62,6 +67,22 @@ public class MemberService {
                 "200-1",
                 "로그인 성공",
                 new AuthAndMakeTokensResponseBody(member, accessToken, refreshToken)
+        );
+    }
+
+    public SecurityUser getUserFromAccessToken(String accessToken) {
+        Map<String, Object> payloadBody = authTokenService.getDataFrom(accessToken);
+
+        long id = (int) payloadBody.get("id");
+        String username = (String) payloadBody.get("username");
+        List<String> authorities = (List<String>) payloadBody.get("authorities");
+
+        return new SecurityUser(
+                id,
+                username,
+                "",
+
+                authorities.stream().map(SimpleGrantedAuthority::new).toList()
         );
     }
 }
